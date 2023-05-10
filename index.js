@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -24,6 +24,58 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
+
+    const chocolatesCollection = client
+      .db("chocolatesDB")
+      .collection("chocolates");
+
+    app.get("/chocolates", async (req, res) => {
+      const cursor = chocolatesCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/chocolates/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await chocolatesCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.post("/chocolates", async (req, res) => {
+      const newChocolate = req.body;
+      console.log(newChocolate);
+      const result = await chocolatesCollection.insertOne(newChocolate);
+      res.send(result);
+    });
+
+    app.put("/chocolates/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateChocolates = req.body;
+      const chocolates = {
+        $set: {
+          name: updateChocolates.name,
+          country: updateChocolates.country,
+          photo: updateChocolates.photo,
+          category: updateChocolates.category,
+        },
+      };
+      const result = await chocolatesCollection.updateOne(
+        filter,
+        chocolates,
+        options
+      );
+      res.send(result);
+    });
+
+    app.delete("/chocolates/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = chocolatesCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
